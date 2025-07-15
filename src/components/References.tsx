@@ -1,277 +1,185 @@
-import React, { useState } from 'react';
-import { BookOpen, FileText, ExternalLink, Upload, Search, Star, Filter } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { BookOpen, FileText, ExternalLink, Upload, Search, Star, Filter, Eye, Trash2, Edit } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
+import UploadManager from './UploadManager';
+
+interface Reference {
+  id: string;
+  title: string;
+  author?: string;
+  category: string;
+  type: 'PDF' | 'Link' | 'Document';
+  bookmarked: boolean;
+  lastOpened?: string;
+  progress?: number;
+  url?: string;
+  file?: File;
+  tags?: string[];
+  dateAdded: string;
+  notes?: string;
+}
 
 const References: React.FC = () => {
   const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState('books');
   const [searchTerm, setSearchTerm] = useState('');
+  const [references, setReferences] = useState<Reference[]>([]);
+  const [showUpload, setShowUpload] = useState(false);
+  const [editingRef, setEditingRef] = useState<Reference | null>(null);
+  const [showAddLink, setShowAddLink] = useState(false);
+
+  const [linkForm, setLinkForm] = useState({
+    title: '',
+    author: '',
+    url: '',
+    category: '',
+    tags: '',
+    notes: ''
+  });
 
   const cardClass = `${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow`;
 
-  const books = [
-    {
-      id: 1,
-      title: 'Robbins Basic Pathology',
-      author: 'Kumar, Abbas, Aster',
-      category: 'Pathology',
-      type: 'PDF',
-      bookmarked: true,
-      lastOpened: '2 days ago',
-      progress: 68
-    },
-    {
-      id: 2,
-      title: 'Katzung & Trevor\'s Pharmacology',
-      author: 'Katzung, Trevor',
-      category: 'Pharmacology',
-      type: 'PDF',
+  useEffect(() => {
+    const savedRefs = localStorage.getItem('references');
+    if (savedRefs) {
+      setReferences(JSON.parse(savedRefs));
+    }
+  }, []);
+
+  const saveReferences = (newRefs: Reference[]) => {
+    setReferences(newRefs);
+    localStorage.setItem('references', JSON.stringify(newRefs));
+  };
+
+  const handleFilesUploaded = (uploadedFiles: any[]) => {
+    const newReferences: Reference[] = uploadedFiles.map(file => ({
+      id: file.id,
+      title: file.name.replace(/\.[^/.]+$/, ""), // Remove extension
+      category: file.subject || 'General',
+      type: 'PDF' as const,
       bookmarked: false,
-      lastOpened: '1 week ago',
-      progress: 45
-    },
-    {
-      id: 3,
-      title: 'Bailey & Love\'s Surgery',
-      author: 'Williams, Bulstrode',
-      category: 'Surgery',
+      dateAdded: file.uploadDate,
+      file: file.file,
+      tags: file.tags
+    }));
+
+    saveReferences([...references, ...newReferences]);
+    setShowUpload(false);
+  };
+
+  const handleAddLink = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const newReference: Reference = {
+      id: Date.now().toString(),
+      title: linkForm.title,
+      author: linkForm.author || undefined,
+      category: linkForm.category || 'General',
       type: 'Link',
-      bookmarked: true,
-      lastOpened: '3 days ago',
-      progress: 23
-    }
-  ];
-
-  const clinicalCases = [
-    {
-      id: 1,
-      title: 'Acute Myocardial Infarction in Young Adult',
-      source: 'NEJM',
-      specialty: 'Cardiology',
-      studied: true,
-      difficulty: 'Hard',
-      dateAdded: '1 week ago'
-    },
-    {
-      id: 2,
-      title: 'Chronic Kidney Disease with Complications',
-      source: 'MSD Manual',
-      specialty: 'Nephrology',
-      studied: false,
-      difficulty: 'Moderate',
-      dateAdded: '3 days ago'
-    },
-    {
-      id: 3,
-      title: 'Diabetic Ketoacidosis Management',
-      source: 'In2Med',
-      specialty: 'Endocrinology',
-      studied: true,
-      difficulty: 'Moderate',
-      dateAdded: '5 days ago'
-    }
-  ];
-
-  const researchPapers = [
-    {
-      id: 1,
-      title: 'COVID-19 Pathophysiology Updates',
-      journal: 'Nature Medicine',
-      year: '2024',
-      impact: 'High',
-      bookmarked: true,
-      tags: ['COVID-19', 'Pathophysiology', 'Recent']
-    },
-    {
-      id: 2,
-      title: 'Antibiotic Resistance Mechanisms',
-      journal: 'The Lancet',
-      year: '2023',
-      impact: 'High',
       bookmarked: false,
-      tags: ['Microbiology', 'Resistance', 'Clinical']
-    }
-  ];
+      url: linkForm.url,
+      dateAdded: new Date().toISOString(),
+      tags: linkForm.tags ? linkForm.tags.split(',').map(t => t.trim()) : undefined,
+      notes: linkForm.notes || undefined
+    };
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty.toLowerCase()) {
-      case 'easy': return 'bg-green-100 text-green-800';
-      case 'moderate': return 'bg-yellow-100 text-yellow-800';
-      case 'hard': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+    saveReferences([...references, newReference]);
+    setLinkForm({ title: '', author: '', url: '', category: '', tags: '', notes: '' });
+    setShowAddLink(false);
+  };
+
+  const toggleBookmark = (refId: string) => {
+    saveReferences(references.map(ref => 
+      ref.id === refId ? { ...ref, bookmarked: !ref.bookmarked } : ref
+    ));
+  };
+
+  const deleteReference = (refId: string) => {
+    if (confirm('Are you sure you want to delete this reference?')) {
+      saveReferences(references.filter(ref => ref.id !== refId));
     }
   };
 
-  const renderBooks = () => (
-    <div className="space-y-4">
-      {books.map((book) => (
-        <div key={book.id} className={`p-4 rounded-lg border ${
-          theme === 'dark' ? 'bg-gray-700/50 border-gray-600' : 'bg-gray-50 border-gray-200'
-        }`}>
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex-1">
-              <div className="flex items-center space-x-2 mb-2">
-                <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                  {book.title}
-                </h3>
-                {book.bookmarked && (
-                  <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                )}
-              </div>
-              <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                {book.author} • {book.category}
-              </p>
-              <p className={`text-xs ${theme === 'dark' ? 'text-gray-500' : 'text-gray-500'}`}>
-                Last opened: {book.lastOpened}
-              </p>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className={`px-2 py-1 rounded-full text-xs ${
-                book.type === 'PDF' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
-              }`}>
-                {book.type}
-              </span>
-              <ExternalLink className="h-4 w-4 text-gray-400 cursor-pointer hover:text-gray-600" />
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                Progress
-              </span>
-              <span className={`text-sm font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                {book.progress}%
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${book.progress}%` }}
-              ></div>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+  const openReference = (ref: Reference) => {
+    if (ref.type === 'Link' && ref.url) {
+      window.open(ref.url, '_blank');
+    } else if (ref.type === 'PDF' && ref.file) {
+      const url = URL.createObjectURL(ref.file);
+      window.open(url, '_blank');
+    }
+    
+    // Update last opened
+    saveReferences(references.map(r => 
+      r.id === ref.id ? { ...r, lastOpened: new Date().toISOString() } : r
+    ));
+  };
 
-  const renderClinicalCases = () => (
-    <div className="space-y-4">
-      {clinicalCases.map((case_) => (
-        <div key={case_.id} className={`p-4 rounded-lg border ${
-          theme === 'dark' ? 'bg-gray-700/50 border-gray-600' : 'bg-gray-50 border-gray-200'
-        }`}>
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex-1">
-              <h3 className={`font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                {case_.title}
-              </h3>
-              <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                {case_.source} • {case_.specialty}
-              </p>
-              <p className={`text-xs ${theme === 'dark' ? 'text-gray-500' : 'text-gray-500'}`}>
-                Added: {case_.dateAdded}
-              </p>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className={`px-2 py-1 rounded-full text-xs ${getDifficultyColor(case_.difficulty)}`}>
-                {case_.difficulty}
-              </span>
-              <div className={`w-4 h-4 rounded border-2 ${
-                case_.studied 
-                  ? 'bg-green-500 border-green-500' 
-                  : theme === 'dark' 
-                  ? 'border-gray-600' 
-                  : 'border-gray-300'
-              }`}>
-                {case_.studied && (
-                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                  </svg>
-                )}
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <button className={`text-sm px-3 py-1 rounded-md ${
-              theme === 'dark' 
-                ? 'text-blue-400 hover:bg-blue-900/20' 
-                : 'text-blue-600 hover:bg-blue-50'
-            }`}>
-              Read Case
+  const filteredReferences = references.filter(ref => {
+    const matchesSearch = ref.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         ref.author?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         ref.category.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesTab = activeTab === 'all' || 
+                      (activeTab === 'books' && ref.type === 'PDF') ||
+                      (activeTab === 'links' && ref.type === 'Link') ||
+                      (activeTab === 'bookmarked' && ref.bookmarked);
+    
+    return matchesSearch && matchesTab;
+  });
+
+  if (references.length === 0 && !showUpload && !showAddLink) {
+    return (
+      <div className="space-y-8">
+        <div className="flex items-center justify-between">
+          <h2 className={`text-3xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            References
+          </h2>
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => setShowAddLink(true)}
+              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+            >
+              <ExternalLink className="h-4 w-4" />
+              <span>Add Link</span>
             </button>
-            {case_.studied && (
-              <button className={`text-sm px-3 py-1 rounded-md ${
-                theme === 'dark' 
-                  ? 'text-green-400 hover:bg-green-900/20' 
-                  : 'text-green-600 hover:bg-green-50'
-              }`}>
-                Quiz Me
-              </button>
-            )}
+            <button
+              onClick={() => setShowUpload(true)}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+            >
+              <Upload className="h-4 w-4" />
+              <span>Upload Files</span>
+            </button>
           </div>
         </div>
-      ))}
-      
-      <div className={`p-6 rounded-lg border-2 border-dashed ${
-        theme === 'dark' 
-          ? 'border-gray-600 bg-gray-800/50' 
-          : 'border-gray-300 bg-gray-50'
-      } text-center`}>
-        <p className={`text-sm mb-4 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-          5 cases studied. Ready for quiz generation!
-        </p>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-          Generate Quiz from Cases
-        </button>
-      </div>
-    </div>
-  );
 
-  const renderResearchPapers = () => (
-    <div className="space-y-4">
-      {researchPapers.map((paper) => (
-        <div key={paper.id} className={`p-4 rounded-lg border ${
-          theme === 'dark' ? 'bg-gray-700/50 border-gray-600' : 'bg-gray-50 border-gray-200'
-        }`}>
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex-1">
-              <div className="flex items-center space-x-2 mb-2">
-                <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                  {paper.title}
-                </h3>
-                {paper.bookmarked && (
-                  <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                )}
-              </div>
-              <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                {paper.journal} • {paper.year}
-              </p>
-              <div className="flex items-center space-x-2 mt-2">
-                {paper.tags.map((tag, index) => (
-                  <span key={index} className={`px-2 py-1 rounded-full text-xs ${
-                    theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'
-                  }`}>
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className={`px-2 py-1 rounded-full text-xs ${
-                paper.impact === 'High' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
-              }`}>
-                {paper.impact} Impact
-              </span>
-              <ExternalLink className="h-4 w-4 text-gray-400 cursor-pointer hover:text-gray-600" />
+        <div className="min-h-[40vh] flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <BookOpen className={`h-16 w-16 mx-auto ${theme === 'dark' ? 'text-gray-600' : 'text-gray-400'}`} />
+            <h3 className={`text-xl font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              No references added yet
+            </h3>
+            <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} max-w-md mx-auto`}>
+              Start building your reference library by uploading PDFs, adding links to research papers, or importing your study materials.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={() => setShowUpload(true)}
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Upload Your First Document
+              </button>
+              <button
+                onClick={() => setShowAddLink(true)}
+                className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors"
+              >
+                Add Reference Link
+              </button>
             </div>
           </div>
         </div>
-      ))}
-    </div>
-  );
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -295,19 +203,190 @@ const References: React.FC = () => {
               }`}
             />
           </div>
-          <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
+          <button
+            onClick={() => setShowAddLink(true)}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
+          >
+            <ExternalLink className="h-4 w-4" />
+            <span>Add Link</span>
+          </button>
+          <button
+            onClick={() => setShowUpload(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+          >
             <Upload className="h-4 w-4" />
             <span>Upload</span>
           </button>
         </div>
       </div>
 
+      {/* Upload Manager */}
+      {showUpload && (
+        <div className={cardClass}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              Upload References
+            </h3>
+            <button
+              onClick={() => setShowUpload(false)}
+              className={`text-gray-500 hover:text-gray-700 ${theme === 'dark' ? 'hover:text-gray-300' : ''}`}
+            >
+              Cancel
+            </button>
+          </div>
+          <UploadManager 
+            onFilesUploaded={handleFilesUploaded}
+            category="references"
+            maxFiles={10}
+          />
+        </div>
+      )}
+
+      {/* Add Link Form */}
+      {showAddLink && (
+        <div className={cardClass}>
+          <h3 className={`text-lg font-semibold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            Add Reference Link
+          </h3>
+          <form onSubmit={handleAddLink} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                  Title *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={linkForm.title}
+                  onChange={(e) => setLinkForm({...linkForm, title: e.target.value})}
+                  className={`w-full px-3 py-2 rounded-md border ${
+                    theme === 'dark' 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
+                  placeholder="e.g., COVID-19 Treatment Guidelines"
+                />
+              </div>
+              
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                  Author/Source
+                </label>
+                <input
+                  type="text"
+                  value={linkForm.author}
+                  onChange={(e) => setLinkForm({...linkForm, author: e.target.value})}
+                  className={`w-full px-3 py-2 rounded-md border ${
+                    theme === 'dark' 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
+                  placeholder="e.g., WHO, NEJM, PubMed"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                URL *
+              </label>
+              <input
+                type="url"
+                required
+                value={linkForm.url}
+                onChange={(e) => setLinkForm({...linkForm, url: e.target.value})}
+                className={`w-full px-3 py-2 rounded-md border ${
+                  theme === 'dark' 
+                    ? 'bg-gray-700 border-gray-600 text-white' 
+                    : 'bg-white border-gray-300 text-gray-900'
+                }`}
+                placeholder="https://..."
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                  Category
+                </label>
+                <input
+                  type="text"
+                  value={linkForm.category}
+                  onChange={(e) => setLinkForm({...linkForm, category: e.target.value})}
+                  className={`w-full px-3 py-2 rounded-md border ${
+                    theme === 'dark' 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
+                  placeholder="e.g., Medicine, Surgery, Guidelines"
+                />
+              </div>
+              
+              <div>
+                <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                  Tags (comma-separated)
+                </label>
+                <input
+                  type="text"
+                  value={linkForm.tags}
+                  onChange={(e) => setLinkForm({...linkForm, tags: e.target.value})}
+                  className={`w-full px-3 py-2 rounded-md border ${
+                    theme === 'dark' 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
+                  placeholder="e.g., Important, Review, Exam"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                Notes
+              </label>
+              <textarea
+                value={linkForm.notes}
+                onChange={(e) => setLinkForm({...linkForm, notes: e.target.value})}
+                className={`w-full px-3 py-2 rounded-md border ${
+                  theme === 'dark' 
+                    ? 'bg-gray-700 border-gray-600 text-white' 
+                    : 'bg-white border-gray-300 text-gray-900'
+                }`}
+                rows={3}
+                placeholder="Additional notes about this reference..."
+              />
+            </div>
+
+            <div className="flex items-center space-x-4">
+              <button
+                type="submit"
+                className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
+              >
+                Add Reference
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowAddLink(false)}
+                className={`px-6 py-2 rounded-lg border ${
+                  theme === 'dark' 
+                    ? 'border-gray-600 text-gray-300 hover:bg-gray-700' 
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       {/* Tab Navigation */}
       <div className="flex space-x-1">
         {[
-          { id: 'books', label: 'Books & PDFs', icon: BookOpen },
-          { id: 'cases', label: 'Clinical Cases', icon: FileText },
-          { id: 'research', label: 'Research Papers', icon: ExternalLink }
+          { id: 'all', label: 'All References', icon: BookOpen },
+          { id: 'books', label: 'Books & PDFs', icon: FileText },
+          { id: 'links', label: 'Links', icon: ExternalLink },
+          { id: 'bookmarked', label: 'Bookmarked', icon: Star }
         ].map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -326,11 +405,123 @@ const References: React.FC = () => {
         ))}
       </div>
 
-      {/* Content */}
+      {/* References List */}
       <div className={cardClass}>
-        {activeTab === 'books' && renderBooks()}
-        {activeTab === 'cases' && renderClinicalCases()}
-        {activeTab === 'research' && renderResearchPapers()}
+        {filteredReferences.length === 0 ? (
+          <div className="text-center py-8">
+            <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              {searchTerm ? 'No references match your search.' : 'No references in this category yet.'}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredReferences.map((ref) => (
+              <div key={ref.id} className={`p-4 rounded-lg border ${
+                theme === 'dark' ? 'bg-gray-700/50 border-gray-600' : 'bg-gray-50 border-gray-200'
+              }`}>
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <h3 className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                        {ref.title}
+                      </h3>
+                      {ref.bookmarked && (
+                        <Star className="h-4 w-4 text-yellow-500 fill-current" />
+                      )}
+                    </div>
+                    {ref.author && (
+                      <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                        {ref.author} • {ref.category}
+                      </p>
+                    )}
+                    <p className={`text-xs ${theme === 'dark' ? 'text-gray-500' : 'text-gray-500'}`}>
+                      Added: {new Date(ref.dateAdded).toLocaleDateString()}
+                      {ref.lastOpened && ` • Last opened: ${new Date(ref.lastOpened).toLocaleDateString()}`}
+                    </p>
+                    {ref.tags && (
+                      <div className="flex items-center space-x-2 mt-2">
+                        {ref.tags.map((tag, index) => (
+                          <span key={index} className={`px-2 py-1 rounded-full text-xs ${
+                            theme === 'dark' ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'
+                          }`}>
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      ref.type === 'PDF' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                    }`}>
+                      {ref.type}
+                    </span>
+                    <button
+                      onClick={() => openReference(ref)}
+                      className={`p-2 rounded ${
+                        theme === 'dark' 
+                          ? 'text-gray-400 hover:text-white hover:bg-gray-600' 
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200'
+                      }`}
+                      title="Open reference"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => toggleBookmark(ref.id)}
+                      className={`p-2 rounded ${
+                        ref.bookmarked 
+                          ? 'text-yellow-500 hover:text-yellow-600' 
+                          : theme === 'dark' 
+                          ? 'text-gray-400 hover:text-yellow-500 hover:bg-gray-600' 
+                          : 'text-gray-600 hover:text-yellow-500 hover:bg-gray-200'
+                      }`}
+                      title={ref.bookmarked ? 'Remove bookmark' : 'Add bookmark'}
+                    >
+                      <Star className={`h-4 w-4 ${ref.bookmarked ? 'fill-current' : ''}`} />
+                    </button>
+                    <button
+                      onClick={() => deleteReference(ref.id)}
+                      className={`p-2 rounded ${
+                        theme === 'dark' 
+                          ? 'text-gray-400 hover:text-red-400 hover:bg-gray-600' 
+                          : 'text-gray-600 hover:text-red-600 hover:bg-gray-200'
+                      }`}
+                      title="Delete reference"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+                
+                {ref.notes && (
+                  <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                    {ref.notes}
+                  </p>
+                )}
+                
+                {ref.progress && (
+                  <div className="mt-3">
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>
+                        Progress
+                      </span>
+                      <span className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>
+                        {ref.progress}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${ref.progress}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

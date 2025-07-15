@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Stethoscope, Activity, Calendar, BookOpen, User, Home, Brain, Slash as FlashCard, FileText } from 'lucide-react';
 import LoginScreen from './components/LoginScreen';
+import WelcomeLetter from './components/WelcomeLetter';
 import Dashboard from './components/Dashboard';
 import Quizzes from './components/Quizzes';
 import Flashcards from './components/Flashcards';
@@ -15,11 +16,21 @@ import { useTheme } from './hooks/useTheme';
 import { useCodeStatus } from './hooks/useCodeStatus';
 
 function App() {
-  const { isAuthenticated, login, logout } = useAuth();
+  const { isAuthenticated, isFirstLogin, login, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { codeStatus } = useCodeStatus();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showKai, setShowKai] = useState(false);
+  const [showWelcomeLetter, setShowWelcomeLetter] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated && isFirstLogin) {
+      const hasSeenLetter = localStorage.getItem('hasSeenWelcomeLetter');
+      if (!hasSeenLetter) {
+        setShowWelcomeLetter(true);
+      }
+    }
+  }, [isAuthenticated, isFirstLogin]);
 
   useEffect(() => {
     document.title = 'R-PAGER - Clinical Companion';
@@ -28,6 +39,10 @@ function App() {
   if (!isAuthenticated) {
     return <LoginScreen onLogin={login} />;
   }
+
+  const handleWelcomeGetStarted = () => {
+    setActiveTab('calendar'); // Navigate to calendar for setup
+  };
 
   const getStatusColor = (status: string) => {
     const colors = {
@@ -67,6 +82,14 @@ function App() {
 
   return (
     <div className={`min-h-screen ${theme === 'dark' ? 'dark bg-gray-900' : 'bg-gray-50'} font-mono`}>
+      {/* Welcome Letter */}
+      {showWelcomeLetter && (
+        <WelcomeLetter 
+          onClose={() => setShowWelcomeLetter(false)}
+          onGetStarted={handleWelcomeGetStarted}
+        />
+      )}
+
       {/* Sticky Header */}
       <header className={`sticky top-0 z-50 ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b shadow-sm`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
