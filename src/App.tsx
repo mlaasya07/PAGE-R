@@ -10,7 +10,6 @@ import Profile from './components/Profile';
 import CalendarView from './components/CalendarView';
 import AcademicTracker from './components/AcademicTracker';
 import KaiChat from './components/KaiChat';
-import LocalKaiChat from './components/LocalKaiChat';
 import { useAuth } from './hooks/useAuth';
 import { useTheme } from './hooks/useTheme';
 import { useCodeStatus } from './hooks/useCodeStatus';
@@ -177,7 +176,7 @@ function App() {
       </main>
 
       {/* Kai Chat Assistant */}
-      <LocalKaiChat 
+      <KaiChat 
         isVisible={showKai}
         onToggle={() => setShowKai(!showKai)}
         onClose={() => setShowKai(false)}

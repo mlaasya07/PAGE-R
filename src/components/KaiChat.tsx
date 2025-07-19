@@ -1,13 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Brain, Send, Minimize2, Maximize2, X, MessageCircle } from 'lucide-react';
+import { Brain, Send, Minimize2, Maximize2, X, Mic, MicOff, Volume2 } from 'lucide-react';
 import { useTheme } from '../hooks/useTheme';
-
-interface Message {
-  id: string;
-  text: string;
-  isUser: boolean;
-  timestamp: Date;
-}
+import { useKai } from '../hooks/useKai';
+import { useCodeStatus } from '../hooks/useCodeStatus';
 
 interface KaiChatProps {
   isVisible: boolean;
@@ -17,11 +12,22 @@ interface KaiChatProps {
 
 const KaiChat: React.FC<KaiChatProps> = ({ isVisible, onToggle, onClose }) => {
   const { theme } = useTheme();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { codeStatus } = useCodeStatus();
   const [inputText, setInputText] = useState('');
   const [isMinimized, setIsMinimized] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const {
+    messages,
+    isLoading,
+    isRecording,
+    isTranscribing,
+    sendMessage,
+    startRecording,
+    stopRecording,
+    clearHistory
+  } = useKai();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -37,87 +43,9 @@ const KaiChat: React.FC<KaiChatProps> = ({ isVisible, onToggle, onClose }) => {
     }
   }, [isVisible, isMinimized]);
 
-  const generateKaiResponse = (userMessage: string): string => {
-    const message = userMessage.toLowerCase();
-    
-    // Mood detection and adaptive responses
-    if (message.includes('tired') || message.includes('exhausted') || message.includes('overwhelmed')) {
-      return "I can sense you're feeling drained. Let's keep this simple - would you like me to create a short 5-minute quiz to ease back in, or should we focus on reviewing something you're already comfortable with?";
-    }
-    
-    if (message.includes('frustrated') || message.includes('stuck') || message.includes('confused')) {
-      return "Frustration is part of the learning process. Let's break this down step by step. What specific topic is giving you trouble? I can create targeted flashcards or find a different approach.";
-    }
-    
-    if (message.includes('confident') || message.includes('ready') || message.includes('energetic')) {
-      return "Great energy! Let's channel that into something productive. Want to tackle a challenging quiz, or should we dive deep into a new topic you've been meaning to explore?";
-    }
-
-    // Content generation requests
-    if (message.includes('quiz') || message.includes('mcq')) {
-      if (message.includes('cvs') || message.includes('cardio')) {
-        return "I'll create a cardiovascular quiz for you. What level would you prefer - basic concepts, clinical applications, or mixed? Also, how many questions?";
-      }
-      return "I can generate a quiz for you. Which subject and how many questions would you like? I can pull from your uploaded notes or create fresh questions.";
-    }
-    
-    if (message.includes('flashcard') || message.includes('cards')) {
-      return "Let's create some flashcards. Do you want me to generate them from your recent uploads, or would you prefer to specify a particular topic? I can make them definition-based, clinical scenarios, or diagram recall.";
-    }
-    
-    if (message.includes('summarize') || message.includes('summary')) {
-      return "I can help summarize content for you. Upload a document or paste the text you'd like me to condense into key points.";
-    }
-
-    // UI/Theme requests
-    if (message.includes('theme') || message.includes('color') || message.includes('ui')) {
-      return "I notice you want to change the interface. Would you like me to switch to a calmer color scheme, or did you have something specific in mind? I always ask before making changes.";
-    }
-
-    // Study planning
-    if (message.includes('plan') || message.includes('schedule')) {
-      return "Let's create a study plan. What exams do you have coming up? I can check your calendar and suggest a revision schedule based on your weak areas.";
-    }
-
-    // Performance analysis
-    if (message.includes('performance') || message.includes('weak') || message.includes('improve')) {
-      return "Based on your recent test scores, I can see some patterns. Would you like me to analyze your performance trends and suggest specific areas to focus on?";
-    }
-
-    // Default responses with personality
-    const defaultResponses = [
-      "I'm here to help with your studies. What would you like to work on?",
-      "Ready to assist! Need help with flashcards, quizzes, or analyzing your performance?",
-      "What's on your mind? I can help with content generation, study planning, or just organizing your thoughts.",
-      "Let's tackle this together. What subject or topic should we focus on?"
-    ];
-    
-    return defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
-  };
-
-  const handleSendMessage = () => {
-    if (!inputText.trim()) return;
-
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      text: inputText,
-      isUser: true,
-      timestamp: new Date()
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-
-    // Simulate Kai's response
-    setTimeout(() => {
-      const kaiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        text: generateKaiResponse(inputText),
-        isUser: false,
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, kaiResponse]);
-    }, 1000);
-
+  const handleSendMessage = async () => {
+    if (!inputText.trim() || isLoading) return;
+    await sendMessage(inputText);
     setInputText('');
   };
 
@@ -126,6 +54,29 @@ const KaiChat: React.FC<KaiChatProps> = ({ isVisible, onToggle, onClose }) => {
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  const handleVoiceToggle = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+
+  const getCodeStatusColor = () => {
+    const colors = {
+      'Code Blue': 'from-blue-600 to-blue-800',
+      'Code Red': 'from-red-600 to-red-800',
+      'Code Black': 'from-gray-800 to-gray-900',
+      'Code White': 'from-gray-300 to-gray-400',
+      'Code Orange': 'from-orange-600 to-orange-800',
+      'Code Yellow': 'from-yellow-500 to-yellow-600',
+      'Code Green': 'from-green-600 to-green-800',
+      'Code Gold': 'from-yellow-400 to-yellow-500',
+      'Code Violet': 'from-purple-600 to-purple-800'
+    };
+    return colors[codeStatus as keyof typeof colors] || 'from-blue-600 to-blue-800';
   };
 
   if (!isVisible) return null;
@@ -139,19 +90,30 @@ const KaiChat: React.FC<KaiChatProps> = ({ isVisible, onToggle, onClose }) => {
         theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
       }`}>
         <div className="flex items-center space-x-2">
-          <div className={`w-8 h-8 rounded-full ${theme === 'dark' ? 'bg-blue-800' : 'bg-blue-100'} flex items-center justify-center`}>
-            <Brain className="h-4 w-4 text-blue-600" />
+          <div className={`w-8 h-8 rounded-full bg-gradient-to-r ${getCodeStatusColor()} flex items-center justify-center`}>
+            <Brain className="h-4 w-4 text-white" />
           </div>
           <div>
             <h4 className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
               Kai
             </h4>
             <p className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-              Your Study Assistant
+              Local • {codeStatus}
             </p>
           </div>
         </div>
         <div className="flex items-center space-x-2">
+          <button
+            onClick={clearHistory}
+            className={`p-1 rounded text-xs ${
+              theme === 'dark' 
+                ? 'text-gray-400 hover:text-white hover:bg-gray-700' 
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+            }`}
+            title="Clear history"
+          >
+            Clear
+          </button>
           <button
             onClick={() => setIsMinimized(!isMinimized)}
             className={`p-1 rounded ${
@@ -182,10 +144,10 @@ const KaiChat: React.FC<KaiChatProps> = ({ isVisible, onToggle, onClose }) => {
             {messages.length === 0 ? (
               <div className="text-center space-y-2">
                 <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Hi Dr. Raghav! I'm Kai, your study assistant.
+                  Kai is running locally via Ollama
                 </p>
                 <p className={`text-xs ${theme === 'dark' ? 'text-gray-500' : 'text-gray-500'}`}>
-                  Ask me to create quizzes, summarize notes, or help with study planning.
+                  Voice transcription via whisper.cpp
                 </p>
               </div>
             ) : (
@@ -197,17 +159,34 @@ const KaiChat: React.FC<KaiChatProps> = ({ isVisible, onToggle, onClose }) => {
                   <div
                     className={`max-w-[80%] p-3 rounded-lg text-sm ${
                       message.isUser
-                        ? 'bg-blue-600 text-white'
+                        ? `bg-gradient-to-r ${getCodeStatusColor()} text-white`
                         : theme === 'dark'
                         ? 'bg-gray-700 text-gray-100'
                         : 'bg-gray-100 text-gray-900'
                     }`}
                   >
+                    {message.isVoice && (
+                      <div className="flex items-center space-x-1 mb-1 opacity-70">
+                        <Volume2 className="h-3 w-3" />
+                        <span className="text-xs">Voice</span>
+                      </div>
+                    )}
                     {message.text}
                   </div>
                 </div>
               ))
             )}
+            
+            {(isLoading || isTranscribing) && (
+              <div className="flex justify-start">
+                <div className={`p-3 rounded-lg text-sm ${
+                  theme === 'dark' ? 'bg-gray-700 text-gray-100' : 'bg-gray-100 text-gray-900'
+                }`}>
+                  {isTranscribing ? 'Transcribing...' : 'Kai is thinking...'}
+                </div>
+              </div>
+            )}
+            
             <div ref={messagesEndRef} />
           </div>
 
@@ -221,20 +200,42 @@ const KaiChat: React.FC<KaiChatProps> = ({ isVisible, onToggle, onClose }) => {
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Ask Kai anything..."
+                disabled={isLoading || isRecording}
                 className={`flex-1 px-3 py-2 rounded-lg border text-sm ${
                   theme === 'dark' 
                     ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
                     : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                }`}
+                } ${(isLoading || isRecording) ? 'opacity-50' : ''}`}
               />
+              
+              <button
+                onClick={handleVoiceToggle}
+                disabled={isLoading || isTranscribing}
+                className={`p-2 rounded-lg transition-colors ${
+                  isRecording 
+                    ? 'bg-red-600 text-white' 
+                    : `bg-gradient-to-r ${getCodeStatusColor()} text-white hover:opacity-80`
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </button>
+              
               <button
                 onClick={handleSendMessage}
-                disabled={!inputText.trim()}
-                className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                disabled={!inputText.trim() || isLoading || isRecording}
+                className={`p-2 bg-gradient-to-r ${getCodeStatusColor()} text-white rounded-lg hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
               >
                 <Send className="h-4 w-4" />
               </button>
             </div>
+            
+            {isRecording && (
+              <div className="mt-2 text-center">
+                <span className={`text-xs ${theme === 'dark' ? 'text-red-400' : 'text-red-600'}`}>
+                  Recording... Click mic to stop
+                </span>
+              </div>
+            )}
           </div>
         </>
       )}
