@@ -332,7 +332,58 @@ const Games: React.FC = () => {
   "Your memory is better than your wardrobe choices.",
   "Don't worry, your GPA won't see this.",
   "You just impressed a fictional AI. That counts, right?",
-  "Your clinical skills are showing. Hide them better."
+  "Your clinical skills are showing. Hide them better.",
+  "You're answering like sleep is a myth. It is, for you.",
+  "Nice diagnosis. Your sleep paralysis demon is proud.",
+  "That was correct. But at what cost?",
+  "You're two steps from burnout and one from genius.",
+  "If vibes were grades, you'd be failing gloriously.",
+  "You're running on vibes, Red Bull, and regret.",
+  "Did you just flex on a multiple-choice question?",
+  "Even your burnout has performance anxiety now.",
+  "You crushed that like your social life.",
+  "The mitochondria felt that one in their soul.",
+  "Textbook says yes. Sanity says: seek help.",
+  "You're outscoring your will to live.",
+  "Welcome to med school: where right answers feel wrong.",
+  "You just dodged a mental breakdown. Barely.",
+  "Correct. Now blink. It's been hours.",
+  "Even your imposter syndrome is confused now.",
+  "You’ve unlocked: Clinical Competence (Trial Version).",
+  "That was smoother than your last mental spiral.",
+  "Your brain’s working overtime. No pay, no thanks.",
+  "Correct answer. Still emotionally bankrupt.",
+  "You're radiating 'sleep-deprived prodigy' energy.",
+  "Your answer was cleaner than your search history.",
+  "You’re built different. Like a patchwork of exhaustion.",
+  "That answer? Less shaky than your hands.",
+  "Congratulations, you’ve earned… another question.",
+  "You just gaslit the quiz into submission.",
+  "Not bad for someone hallucinating from sleep debt.",
+  "Correct. Your coping mechanisms rejoice.",
+  "You're clinically correct. Emotionally unstable.",
+  "That answer slayed harder than your circadian rhythm.",
+  "You’ve surpassed expectations. And sanity.",
+  "Correct. Your inner child weeps with relief.",
+  "You’re not just tired. You’re historic-tired.",
+  "You just beat the quiz. Life’s next.",
+  "You've diagnosed your way into our hearts. Ew.",
+  "You're smarter than your current hygiene level.",
+  "Correct answer, incorrect posture.",
+  "That was so on point, your GPA twitched.",
+  "You’re not doing well. You’re doing medicine.",
+  "Even your coffee addiction is impressed.",
+  "Correct. Now go touch a vitamin.",
+  "You’ve earned a hug. From a spine model.",
+  "Your neurons are running a relay race. With cramps.",
+  "That was a 10/10. Would recommend therapy though.",
+  "You're acing this like you’re avoiding reality.",
+  "Your brain is the only thing functioning. Barely.",
+  "You answered that with the confidence of a final-year and the accuracy of a first-year.",
+  "You're learning faster than you're spiraling. Impressive.",
+  "You make guessing look like strategy.",
+  "That was sharp. Unlike your razor. Shave, maybe?"
+
   ];
 
   return (
@@ -415,8 +466,9 @@ const Games: React.FC = () => {
                     Optional Mode: Quiz pops up every few points to keep your brain sharp!
                   </p>
                 </div>
-                <div className="flex justify-center">
-                  <button className="border border-amber-400 px-8 py-3 hover:bg-amber-400 hover:text-black transition-colors font-pixel">
+                <div className="flex justify-center"
+                  
+                  <button onClick={() => setSelectedGame('retro-snake')} className="border border-amber-400 px-8 py-3 hover:bg-amber-400 hover:text-black transition-colors font-pixel">
                     START SNAKE GAME
                   </button>
                 </div>
