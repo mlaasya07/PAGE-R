@@ -12,7 +12,7 @@ const AccessGate: React.FC<AccessGateProps> = ({ onAuthenticate }) => {
   const [bootText, setBootText] = useState('');
 
   const bootSequence = [
-    'R-PAGER SYSTEM BOOT v2.1.4',
+    'PAGE-R SYSTEM BOOT v11.08.05',
     'Initializing neural pathways...',
     'Loading medical databases...',
     'Calibrating caffeine sensors...',
@@ -52,14 +52,14 @@ const AccessGate: React.FC<AccessGateProps> = ({ onAuthenticate }) => {
       }, 500);
     } else {
       const errorMessages = [
-        'Access Denied. This isn\'t your cadaver.',
+        'Access Denied. This isn.t your cadaver.',
         'Hint: Your pulse should know this.',
         '404 Brain not found. Have you tried glycolysis?',
         'Access Denied. Synaptic permissions insufficient.',
-        'Hint: This memory isn’t mapped in your hippocampus.',
+        'Hint: This memory isn.t mapped in your hippocampus.',
         'ERROR 451: Cortex Unavailable – Emotionally restricted content.',
         'Unauthorized probe detected. Cerebral firewall activated.',
-        'You.re poking around in someone else’s gray matter, creep.',
+        'You.re poking around in someone else. s gray matter, creep.',
         'Neural handshake failed. Try rebooting your empathy.',
         'This ain.t your flesh-vessel. Kindly exit the cranial premises.',
         'Thought.exe crashed. Restart limbic system and try again.',
@@ -71,7 +71,7 @@ const AccessGate: React.FC<AccessGateProps> = ({ onAuthenticate }) => {
         'Unauthorized soul sync attempt detected. Audit logging your dreams now.',
         'Brain offline. Neurons out for coffee.',
         'Echoes found. Consciousness not included.',
-        'Login failed. Neural patterns don’t align with the host corpse.',
+        'Login failed. Neural patterns don\'t align with the host corpse.',
         'Bio-authentication rejected. You.re just skin with questions.',
         'Error: Thought not found. Please insert deeper introspection.',
         'Fatal Exception: User attempted to think without permission.'
@@ -104,7 +104,7 @@ const AccessGate: React.FC<AccessGateProps> = ({ onAuthenticate }) => {
       <div className="max-w-md w-full">
         <div className="border border-green-400 p-8 terminal-glow">
           <div className="text-center mb-8">
-            <h1 className="text-2xl mb-2 font-pixel">PROJECT R-PAGER</h1>
+            <h1 className="text-2xl mb-2 font-pixel">PROJECT PAGE-R</h1>
             <p className="text-sm opacity-75">"Vitals. Memory. Soul."</p>
             <p className="text-xs mt-4 opacity-50">A underground playground just for one doctor.</p>
           </div>
